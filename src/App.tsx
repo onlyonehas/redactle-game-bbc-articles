@@ -32,7 +32,7 @@ function App() {
   const headlineTokens = useMemo(() => tokenize(article.headline), [article]);
   const isHeadlineSolved = headlineTokens
     .filter(t => t.isWord)
-    .every(t => !isRedacted(t.text, guesses));
+    .every(t => !isRedacted(t.text, guesses)) && article.content?.length > 1;
 
   // Trigger win effect if newly won
   // (Could add confetti or modal here)
