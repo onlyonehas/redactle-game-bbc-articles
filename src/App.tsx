@@ -23,9 +23,21 @@ function App() {
     [currentArticleId]);
 
   // Statistics
-  const { stats, recordWin } = useStats();
+  const { stats, recordWin, recordLoss } = useStats(); // Added recordLoss
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [lastGameStats, setLastGameStats] = useState<{ guesses: number; globalAverage: number } | null>(null);
+
+  // ... (lines 30-101)
+
+  const handleGiveUp = () => {
+    if (confirm('Are you sure you want to give up? This will reveal the entire article.')) {
+      setHasGivenUp(true);
+      recordLoss(); // Record the loss
+      setGuessList([]); // Clear guesses as requested
+      setLastGuess(null);
+      setHighlightedWord(null);
+    }
+  };
 
   // Game State
   // Store guesses as OBJECTS { word, count } in persistence
@@ -83,6 +95,11 @@ function App() {
       }
     }
 
+    // Reset persistent data for this article so it's a "New Game"
+    // Note: We use the key format from usePersistence
+    localStorage.removeItem(`guesses-v2-${nextId}`);
+    localStorage.removeItem(`stats-won-${nextId}`);
+
     setCurrentArticleId(nextId);
     setLastGuess(null);
     setHighlightedWord(null);
@@ -93,11 +110,7 @@ function App() {
     window.scrollTo(0, 0);
   };
 
-  const handleGiveUp = () => {
-    if (confirm('Are you sure you want to give up? This will reveal the entire article.')) {
-      setHasGivenUp(true);
-    }
-  };
+
 
   // Check win condition
   const headlineTokens = useMemo(() => tokenize(article.headline), [article]);
@@ -159,6 +172,7 @@ function App() {
       >
         <main className="article-container">
           <ArticleView
+            key={article.id} // Force reset of internal state (Category Hint)
             article={article}
             guesses={guesses}
             highlightedWord={highlightedWord}

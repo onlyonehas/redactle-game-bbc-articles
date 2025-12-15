@@ -143,10 +143,10 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, guesses, high
         }
     };
 
-    // Auto-reveal category on win
+    // Auto-reveal category on win or give up
     React.useEffect(() => {
-        if (isHeadlineSolved) setCategoryRevealed(true);
-    }, [isHeadlineSolved]);
+        if (isHeadlineSolved || isGiveUp) setCategoryRevealed(true);
+    }, [isHeadlineSolved, isGiveUp]);
 
     return (
         <article className="container" style={{ paddingBottom: '100px', maxWidth: '800px' }}>

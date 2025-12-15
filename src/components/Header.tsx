@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ articleId, headlineRevealed, onH
                     <button onClick={onHelp} className="header-btn">Help</button>
                     <button onClick={onNewGame} className="header-btn">New Game</button>
                     {!headlineRevealed && (
-                        <button onClick={onGiveUp} className="header-btn" style={{ opacity: 0.8 }}>Give Up</button>
+                        <button onClick={onGiveUp} className="header-btn">Give Up</button>
                     )}
                 </div>
             </div>
