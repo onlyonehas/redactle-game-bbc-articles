@@ -2,6 +2,13 @@ import type { Article } from '../utils/gameLogic';
 
 export const ARTICLES: Article[] = [
     {
+        id: '0',
+        headline: "",
+        category: "",
+        date: "",
+        content: []
+    },
+    {
         id: '1',
         headline: "Government announces new plan to cut energy bills",
         category: "Politics",
@@ -27,8 +34,37 @@ export const ARTICLES: Article[] = [
     }
 ];
 
-export function getDailyArticle(): Article {
+export function getEmptyArticle(): Article {
+    return ARTICLES[0];
+}
+
+export async function getDailyArticle(): Promise<Article> {
     // For now, return the first one. In future, use date hashing.
-    const today = new Date().getDate();
-    return ARTICLES[today % ARTICLES.length];
+    // const today = new Date().getDate();
+    // convertArticle().then((article)=>{console.log(article)});
+    // return ARTICLES[today % ARTICLES.length];
+    const article = await convertArticle();
+    return article;
+}
+
+async function convertArticle(): Promise<Article> {
+    const url = 'https://www.bbc.co.uk/news/articles/cqxqzlrzlx1o';
+    const response = await fetch(url);
+    const result = await response.text();
+    const htmlParser = new DOMParser();
+    const parsedHTML = htmlParser.parseFromString(result, 'text/html');
+    const paragraphElements = parsedHTML.querySelectorAll('p[class*="Paragraph"]')
+    const headline = parsedHTML.querySelector('h1')?.textContent || '';
+    const date = parsedHTML.querySelector('time')?.textContent || '';
+    
+    const paragraphs: string[] = [];
+    paragraphElements.forEach((element)=>{paragraphs.push(element.textContent)})
+
+    return {
+        id: '0',
+        headline,
+        category: '',
+        date,
+        content:  paragraphs
+    }
 }

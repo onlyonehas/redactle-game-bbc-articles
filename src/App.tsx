@@ -2,18 +2,19 @@ import { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ArticleView } from './components/ArticleView';
 import { GuessInput } from './components/GuessInput';
-import { getDailyArticle, ARTICLES } from './data/articles'; // In real app, use getDailyArticle
+import { getDailyArticle, getEmptyArticle, ARTICLES } from './data/articles'; // In real app, use getDailyArticle
 import { cleanWord, isRedacted, tokenize } from './utils/gameLogic';
 import { usePersistence } from './hooks/usePersistence';
 
 function App() {
-  const [article, setArticle] = useState(getDailyArticle());
+  const [article, setArticle] = useState(getEmptyArticle);
   // Store guesses as array in persistence, convert to Set for internal logic
   const [guessList, setGuessList] = usePersistence<string[]>(`guesses-${article.id}`, []);
 
   console.log('App rendering, Article ID:', article.id);
 
   const guesses = useMemo(() => new Set(guessList), [guessList]);
+  getDailyArticle().then((article)=>setArticle(article));
 
   // Handle a new guess
   const handleGuess = (word: string) => {
