@@ -14,29 +14,11 @@ export function getEmptyArticle(): Article {
     return ARTICLES[0];
 }
 
-const getArticleUrl = () => '/news/articles/cqxqzlrzlx1o';
-
 export async function getDailyArticle(): Promise<Article> {
-    const url = `https://www.bbc.co.uk/${getArticleUrl()}`;
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/`;
 
     const response = await fetch(url);
-    const html = await response.text();
+    const json = await response.json();
 
-    const htmlParser = new DOMParser();
-    const parsedHTML = htmlParser.parseFromString(html, 'text/html');
-
-    const paragraphElements = parsedHTML.querySelectorAll('p[class*="Paragraph"]')
-    const paragraphs: string[] = [];
-    paragraphElements.forEach((element)=>{paragraphs.push(element.textContent)});
-
-    const headline = parsedHTML.querySelector('h1')?.textContent || '';
-    const date = parsedHTML.querySelector('time')?.textContent || '';
-
-    return {
-        id: '0',
-        headline,
-        category: '',
-        date,
-        content:  paragraphs
-    }
+    return json;
 }
