@@ -1,22 +1,46 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock getDailyArticle to always return the first article (ID 1)
+// Mock the async article functions
 vi.mock('./data/articles', async (importOriginal) => {
     const mod = await importOriginal<typeof import('./data/articles')>();
+
+    const mockArticle = {
+        index: 1,
+        headline: 'Test Article Headline',
+        category: 'Test',
+        date: '2023-01-01',
+        content: ['This is test content for the article.'],
+        avgGuesses: 10
+    };
+
     return {
         ...mod,
-        getDailyArticle: () => mod.ARTICLES[0],
+        getDailyArticle: vi.fn(() => Promise.resolve(mockArticle)),
+        getArticleByID: vi.fn(() => Promise.resolve(mockArticle)),
+        getEmptyArticle: () => ({
+            index: -1,
+            headline: '',
+            category: '',
+            date: '',
+            content: [],
+            avgGuesses: 0
+        }),
+        getRandomArticle: vi.fn(() => Promise.resolve({ ...mockArticle, index: 2 }))
     };
 });
 
 describe('App Integration', () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
     it('registers a user guess', async () => {
         render(<App />);
 
-        // Wait for article to load (daily article index is 1)
-        await screen.findByText('#1');
+        // Wait for article to load
+        await waitFor(() => screen.getByText('#1'));
 
         const input = screen.getByPlaceholderText('Type a guess...');
         const button = screen.getByRole('button', { name: /GUESS/ });
@@ -39,7 +63,7 @@ describe('App Integration', () => {
         render(<App />);
 
         // Wait for article to load
-        await screen.findByText('#1');
+        await waitFor(() => screen.getByText('#1'));
 
         const input = screen.getByPlaceholderText('Type a guess...');
         const button = screen.getByRole('button', { name: /GUESS/ });

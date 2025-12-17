@@ -2,9 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ArticleView } from './components/ArticleView';
 import { GuessInput } from './components/GuessInput';
+import { getDailyArticle, getEmptyArticle, getArticleByID, getRandomArticle } from './data/articles';
 import { HelpModal } from './components/HelpModal';
 import { GuessFeedback } from './components/GuessFeedback';
-import { getDailyArticle, ARTICLES } from './data/articles'; // ARTICLES needed for random pick
 import { cleanWord, isRedacted, tokenize, countOccurrences } from './utils/gameLogic';
 import { usePersistence } from './hooks/usePersistence';
 import { useStats } from './hooks/useStats';
@@ -13,30 +13,35 @@ import { StatsModal } from './components/StatsModal';
 import { LoadingSpinner } from './components/LoadingSpinner';
 
 function App() {
-  // Article ID Management - Support Random Play
-  // Persist article ID so refreshing the page keeps you on the same article
-  const [currentArticleId, setCurrentArticleId] = usePersistence<string>(
-    'current-article-id',
-    getDailyArticle().id
-  );
-  const [isLoading, setIsLoading] = useState(false);
+  const [article, setArticle] = useState(getEmptyArticle);
+  const [isLoading, setIsLoading] = useState(true);
+  const [articleIndex, setArticleIndex] = usePersistence<number>(`current-article-index`, -1);
 
-  const article = useMemo(() =>
-    ARTICLES.find(a => a.id === currentArticleId) || getDailyArticle(),
-    [currentArticleId]);
+  useEffect(() => {
+    if (articleIndex === -1) {
+      getDailyArticle().then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        setIsLoading(false);
+      });
+    } else {
+      getArticleByID(articleIndex).then((article) => {
+        setArticle(article);
+        setIsLoading(false);
+      });
+    }
+  }, []);
 
   // Statistics
-  const { stats, recordWin, recordLoss } = useStats(); // Added recordLoss
+  const { stats, recordWin, recordLoss } = useStats();
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [lastGameStats, setLastGameStats] = useState<{ guesses: number; globalAverage: number } | null>(null);
-
-  // ... (lines 30-101)
 
   const handleGiveUp = () => {
     if (confirm('Are you sure you want to give up? This will reveal the entire article.')) {
       setHasGivenUp(true);
-      recordLoss(); // Record the loss
-      setGuessList([]); // Clear guesses as requested
+      recordLoss();
+      setGuessList([]);
       setLastGuess(null);
       setHighlightedWord(null);
     }
@@ -44,17 +49,17 @@ function App() {
 
   // Game State
   // Store guesses as OBJECTS { word, count } in persistence
-  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.id}`, []);
+  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.index}`, []);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [lastGuess, setLastGuess] = useState<{ word: string; count: number } | null>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
 
   // New Features State
   const [hasGivenUp, setHasGivenUp] = useState(false);
-  const [isHintMode, setIsHintMode] = useState(false); // If true, next click on word reveals it
-  const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null); // Key of the single token showing char count
+  const [isHintMode, setIsHintMode] = useState(false);
+  const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null);
 
-  console.log('App rendering, Article ID:', article.id);
+  console.log('App rendering, Article ID:', article.index);
 
   const guesses = useMemo(() => new Set(guessList.map(g => g.word)), [guessList]);
 
@@ -69,7 +74,7 @@ function App() {
 
     // Auto-highlight the just-guessed word
     setHighlightedWord(cleaned);
-    setRevealedTokenKey(null); // Clear character reveal on guess
+    setRevealedTokenKey(null);
 
     if (guesses.has(cleaned)) return;
 
@@ -87,10 +92,6 @@ function App() {
       const isHeadlineWord = headTokens.some(t => t.isWord && cleanWord(t.text) === cleaned);
 
       if (isHeadlineWord) {
-        // Wait, isRedacted signature: isRedacted(word, guesses). Returns true if hidden (redacted).
-        // Let's re-verify logic.
-        // isRedacted returns TRUE if the word should be HIDDEN.
-
         const hiddenUniqueWords = new Set(
           headTokens
             .filter(t => t.isWord)
@@ -106,30 +107,18 @@ function App() {
       }
 
       handleGuess(cleaned);
-      setIsHintMode(false); // Turn off after use
+      setIsHintMode(false);
     }
   };
 
-  const startNewGame = (random: boolean = true) => {
-    if (!window.confirm("Are you sure you want to start a new game?")) return;
-
+  const startDailyGame = () => {
     setIsLoading(true);
-    let nextId = getDailyArticle().id;
-    if (random) {
-      // Pick random article different from current
-      const others = ARTICLES.filter(a => a.id !== currentArticleId);
-      if (others.length > 0) {
-        const randomArticle = others[Math.floor(Math.random() * others.length)];
-        nextId = randomArticle.id;
-      }
-    }
+    getDailyArticle().then((article) => {
+      setArticle(article);
+      setArticleIndex(article.index);
+      setIsLoading(false);
+    });
 
-    // Reset persistent data for this article so it's a "New Game"
-    // Note: We use the key format from usePersistence
-    localStorage.removeItem(`guesses-v2-${nextId}`);
-    localStorage.removeItem(`stats-won-${nextId}`);
-
-    setCurrentArticleId(nextId);
     setLastGuess(null);
     setHighlightedWord(null);
     setHasGivenUp(false);
@@ -137,12 +126,31 @@ function App() {
     setIsHintMode(false);
     setRevealedTokenKey(null);
     window.scrollTo(0, 0);
-
-    // Reset loading state after a brief delay to allow state updates to propagate
-    setTimeout(() => setIsLoading(false), 100);
   };
 
+  const startNewGame = () => {
+    if (!window.confirm("Are you sure you want to start a new game?")) return;
 
+    setIsLoading(true);
+    getRandomArticle().then((article) => {
+      // Reset persistent data for this article
+      localStorage.removeItem(`guesses-v2-${article.index}`);
+      localStorage.removeItem(`stats-won-${article.index}`);
+
+      setArticle(article);
+      setArticleIndex(article.index);
+      setLastGuess(null);
+      setHighlightedWord(null);
+      setHasGivenUp(false);
+      setIsStatsOpen(false);
+      setIsHintMode(false);
+      setRevealedTokenKey(null);
+      window.scrollTo(0, 0);
+
+      // Reset loading state after a brief delay
+      setTimeout(() => setIsLoading(false), 100);
+    });
+  };
 
   // Check win condition
   const headlineTokens = useMemo(() => tokenize(article.headline), [article]);
@@ -153,7 +161,7 @@ function App() {
   // Effect for Win
   useEffect(() => {
     if (isHeadlineSolved && !hasGivenUp) {
-      const key = `stats-won-${article.id}`;
+      const key = `stats-won-${article.index}`;
       if (!localStorage.getItem(key)) {
         recordWin(guessList.length);
         localStorage.setItem(key, 'true');
@@ -164,17 +172,17 @@ function App() {
       });
       setIsStatsOpen(true);
     }
-  }, [isHeadlineSolved, hasGivenUp, article.id, article.avgGuesses, guessList.length, recordWin]);
-
+  }, [isHeadlineSolved, hasGivenUp, article.index, article.avgGuesses, guessList.length, recordWin]);
 
   return (
     <div className="App">
       <Header
-        articleId={article.id}
+        articleId={article.index}
         headlineRevealed={isHeadlineSolved || hasGivenUp}
         onHelp={() => setIsHelpOpen(true)}
         onStats={() => setIsStatsOpen(true)}
-        onNewGame={() => startNewGame(true)}
+        onNewGame={startNewGame}
+        onDailyGame={startDailyGame}
         onGiveUp={handleGiveUp}
       />
 
@@ -198,14 +206,14 @@ function App() {
         onClick={() => {
           setHighlightedWord(null);
           setRevealedTokenKey(null);
-        }} // Click background to clear highlight and reveals
+        }}
       >
         <main className="article-container">
           {isLoading ? (
             <LoadingSpinner />
           ) : (
             <ArticleView
-              key={article.id} // Force reset of internal state (Category Hint)
+              key={article.index}
               article={article}
               guesses={guesses}
               highlightedWord={highlightedWord}
@@ -216,25 +224,24 @@ function App() {
               onRevealToken={setRevealedTokenKey}
             />
           )}
-        </main >
+        </main>
 
         <aside
           className="desktop-history"
-          onClick={(e) => e.stopPropagation()} // Prevent sidebar clicks from clearing
+          onClick={(e) => e.stopPropagation()}
         >
           <GuessHistory
             guesses={guessList}
             onHighlight={(word) => {
               setHighlightedWord(word);
-              setRevealedTokenKey(null); // Clear reveal when highlighting from sidebar
+              setRevealedTokenKey(null);
             }}
             highlightedWord={highlightedWord}
           />
         </aside>
-      </div >
+      </div>
 
-      {/* Mobile/Floating Feedback */}
-      < GuessFeedback lastGuess={lastGuess} />
+      <GuessFeedback lastGuess={lastGuess} />
 
       {!isHeadlineSolved && !hasGivenUp && (
         <GuessInput
@@ -243,8 +250,7 @@ function App() {
           onToggleHint={() => setIsHintMode(prev => !prev)}
           isHintMode={isHintMode}
         />
-      )
-      }
+      )}
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
@@ -253,9 +259,9 @@ function App() {
         onClose={() => setIsStatsOpen(false)}
         stats={stats}
         lastGame={lastGameStats}
-        onNewGame={() => startNewGame(true)}
+        onNewGame={startNewGame}
       />
-    </div >
+    </div>
   );
 }
 

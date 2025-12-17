@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "css-select": "^6.0.0",
+    "domutils": "^3.2.2",
+    "htmlparser2": "^10.0.0"
+  }
+}

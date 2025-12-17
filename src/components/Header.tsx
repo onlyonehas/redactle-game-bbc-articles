@@ -1,10 +1,10 @@
 interface HeaderProps {
-    articleId: string;
+    articleId: number;
     headlineRevealed: boolean;
     onHelp: () => void;
     onStats: () => void;
     onNewGame: () => void;
-    onDailyGame?: () => void;
+    onDailyGame: () => void;
     onGiveUp: () => void;
 }
 
@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({ articleId, headlineRevealed, onH
                     <button onClick={onStats} className="header-btn" title="Statistics">Stats</button>
                     <button onClick={onHelp} className="header-btn">Help</button>
                     <button onClick={onNewGame} className="header-btn">New Game</button>
-                    {onDailyGame && <button onClick={onDailyGame} className="header-btn">Today's Game</button>}
+                    <button onClick={onDailyGame} className="header-btn">Today's Game</button>
                     {!headlineRevealed && (
                         <button onClick={onGiveUp} className="header-btn">Give Up</button>
                     )}
