@@ -1,6 +1,15 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock getDailyArticle to always return the first article (ID 1)
+vi.mock('./data/articles', async (importOriginal) => {
+    const mod = await importOriginal<typeof import('./data/articles')>();
+    return {
+        ...mod,
+        getDailyArticle: () => mod.ARTICLES[0],
+    };
+});
 
 describe('App Integration', () => {
     it('registers a user guess', async () => {
