@@ -30,7 +30,7 @@ const articleIds = [
 
 const emptyArticle: Article =
 {
-    id: '-1',
+    index: -1,
     headline: "",
     category: "",
     date: "",
@@ -42,6 +42,26 @@ export function getEmptyArticle(): Article {
     return emptyArticle;
 }
 
+export async function getArticleByID(id: number): Promise<Article> {
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[id].id}`;
+
+    const response = await fetch(url);
+    const json = await response.json();
+
+    return { ...json, index: articleIds[id].index, category: articleIds[id].category };
+}
+
+export async function getRandomArticle(currentIndex: number): Promise<Article> {
+    const others = articleIds.filter(a => a.index !== currentIndex);
+    const randomArticle = others[Math.floor(Math.random() * others.length)];
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${randomArticle.id}`;
+
+    const response = await fetch(url);
+    const json = await response.json();
+
+    return { ...json, index: randomArticle.index, category: randomArticle.category };
+}
+
 export async function getDailyArticle(): Promise<Article> {
     const dailyIndex = 1;
     const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[dailyIndex].id}`;
@@ -49,5 +69,5 @@ export async function getDailyArticle(): Promise<Article> {
     const response = await fetch(url);
     const json = await response.json();
 
-    return { ...json, id: dailyIndex, category: articleIds[dailyIndex].category };
+    return { ...json, index: dailyIndex, category: articleIds[dailyIndex].category };
 }

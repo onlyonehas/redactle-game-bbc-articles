@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ArticleView } from './components/ArticleView';
 import { GuessInput } from './components/GuessInput';
-import { getDailyArticle, getEmptyArticle } from './data/articles';
+import { getDailyArticle, getEmptyArticle, getArticleByID, getRandomArticle } from './data/articles';
 import { HelpModal } from './components/HelpModal';
 import { GuessFeedback } from './components/GuessFeedback';
 import { cleanWord, isRedacted, tokenize, countOccurrences } from './utils/gameLogic';
@@ -13,10 +13,13 @@ import { StatsModal } from './components/StatsModal';
 
 function App() {
   const [article, setArticle] = useState(getEmptyArticle);
-  useEffect(()=> {
-    getDailyArticle().then((article)=> {
+  const [articleIndex, setArticleIndex] = useState(-1);
+  useEffect(() => {
+    getDailyArticle().then((article) => {
       setArticle(article);
-  });
+      console.log(article)
+      setArticleIndex(article.index);
+    });
   }, []);
 
   // Statistics
@@ -36,7 +39,7 @@ function App() {
 
   // Game State
   // Store guesses as OBJECTS { word, count } in persistence
-  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.id}`, []);
+  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.index}`, []);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [lastGuess, setLastGuess] = useState<{ word: string; count: number } | null>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
@@ -46,7 +49,7 @@ function App() {
   const [isHintMode, setIsHintMode] = useState(false); // If true, next click on word reveals it
   const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null); // Key of the single token showing char count
 
-  console.log('App rendering, Article ID:', article.id);
+  console.log('App rendering, Article ID:', article.index);
 
   const guesses = useMemo(() => new Set(guessList.map(g => g.word)), [guessList]);
 
@@ -80,20 +83,21 @@ function App() {
   };
 
   const startNewGame = (random: boolean = true) => {
-    let nextId = article.id;
-    // if (random) {
-    //   // Pick random article different from current
-    //   const others = ARTICLES.filter(a => a.id !== currentArticleId);
-    //   if (others.length > 0) {
-    //     const randomArticle = others[Math.floor(Math.random() * others.length)];
-    //     nextId = randomArticle.id;
-    //   }
-    // }
-
-    // Reset persistent data for this article so it's a "New Game"
-    // Note: We use the key format from usePersistence
-    localStorage.removeItem(`guesses-v2-${nextId}`);
-    localStorage.removeItem(`stats-won-${nextId}`);
+    if (random) {
+      getRandomArticle(articleIndex).then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        localStorage.removeItem(`guesses-v2-${article.index}`);
+        localStorage.removeItem(`stats-won-${article.index}`);
+      });
+    } else {
+      getArticleByID(articleIndex).then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        localStorage.removeItem(`guesses-v2-${article.index}`);
+        localStorage.removeItem(`stats-won-${article.index}`);
+      });
+    }
 
     setLastGuess(null);
     setHighlightedWord(null);
@@ -115,7 +119,7 @@ function App() {
   // Effect for Win
   useEffect(() => {
     if (isHeadlineSolved && !hasGivenUp) {
-      const key = `stats-won-${article.id}`;
+      const key = `stats-won-${article.index}`;
       if (!localStorage.getItem(key)) {
         recordWin(guessList.length);
         localStorage.setItem(key, 'true');
@@ -126,13 +130,13 @@ function App() {
       });
       setIsStatsOpen(true);
     }
-  }, [isHeadlineSolved, hasGivenUp, article.id, article.avgGuesses, guessList.length, recordWin]);
+  }, [isHeadlineSolved, hasGivenUp, article.index, article.avgGuesses, guessList.length, recordWin]);
 
 
   return (
     <div className="App">
       <Header
-        articleId={article.id}
+        articleId={articleIndex}
         headlineRevealed={isHeadlineSolved || hasGivenUp}
         onHelp={() => setIsHelpOpen(true)}
         onStats={() => setIsStatsOpen(true)}
@@ -166,7 +170,7 @@ function App() {
       >
         <main className="article-container">
           <ArticleView
-            key={article.id} // Force reset of internal state (Category Hint)
+            key={article.index} // Force reset of internal state (Category Hint)
             article={article}
             guesses={guesses}
             highlightedWord={highlightedWord}
