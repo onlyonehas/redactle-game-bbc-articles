@@ -140,6 +140,9 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                     >
                         Close
                     </button>
+                    <button>
+                        Publish score to leaderboard
+                    </button>
                     {onNewGame && (
                         <button
                             onClick={() => {
@@ -158,6 +161,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                         >
                             Play Random Article
                         </button>
+
                     )}
                 </div>
             </div>
