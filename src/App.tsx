@@ -10,16 +10,28 @@ import { usePersistence } from './hooks/usePersistence';
 import { useStats } from './hooks/useStats';
 import { GuessHistory } from './components/GuessHistory';
 import { StatsModal } from './components/StatsModal';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 function App() {
   const [article, setArticle] = useState(getEmptyArticle);
-  const [articleIndex, setArticleIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(true);
+  // const [articleIndex, setArticleIndex] = useState(-1);
+  const [articleIndex, setArticleIndex] = usePersistence<number>(`current-article-index`, -1);
+
   useEffect(() => {
-    getDailyArticle().then((article) => {
-      setArticle(article);
-      console.log(article)
-      setArticleIndex(article.index);
-    });
+    if (articleIndex === -1) {
+      getDailyArticle().then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        setIsLoading(false);
+      });
+    } else {
+      getArticleByID(articleIndex).then((article) => {
+        setArticle(article);
+        setIsLoading(false);
+      });
+    }
+
   }, []);
 
   // Statistics
@@ -82,13 +94,31 @@ function App() {
     }
   };
 
+  const startDailyGame = () => {
+    getDailyArticle().then((article) => {
+      setArticle(article);
+      setArticleIndex(article.index);
+      setIsLoading(false);
+    });
+
+    setLastGuess(null);
+    setHighlightedWord(null);
+    setHasGivenUp(false);
+    setIsStatsOpen(false);
+    setIsHintMode(false);
+    setRevealedTokenKey(null);
+    window.scrollTo(0, 0);
+  }
+
   const startNewGame = (random: boolean = true) => {
+    setIsLoading(true);
     if (random) {
       getRandomArticle(articleIndex).then((article) => {
         setArticle(article);
         setArticleIndex(article.index);
         localStorage.removeItem(`guesses-v2-${article.index}`);
         localStorage.removeItem(`stats-won-${article.index}`);
+        setIsLoading(false);
       });
     } else {
       getArticleByID(articleIndex).then((article) => {
@@ -96,6 +126,7 @@ function App() {
         setArticleIndex(article.index);
         localStorage.removeItem(`guesses-v2-${article.index}`);
         localStorage.removeItem(`stats-won-${article.index}`);
+        setIsLoading(false);
       });
     }
 
@@ -141,6 +172,7 @@ function App() {
         onHelp={() => setIsHelpOpen(true)}
         onStats={() => setIsStatsOpen(true)}
         onNewGame={() => startNewGame(true)}
+        onDailyGame={() => startDailyGame()}
         onGiveUp={handleGiveUp}
         onToggleHint={() => setIsHintMode(prev => !prev)}
         isHintMode={isHintMode}
@@ -169,17 +201,21 @@ function App() {
         }} // Click background to clear highlight and reveals
       >
         <main className="article-container">
-          <ArticleView
-            key={article.index} // Force reset of internal state (Category Hint)
-            article={article}
-            guesses={guesses}
-            highlightedWord={highlightedWord}
-            isGiveUp={hasGivenUp}
-            isHintMode={isHintMode}
-            onWordClick={handleHintClick}
-            revealedTokenKey={revealedTokenKey}
-            onRevealToken={setRevealedTokenKey}
-          />
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <ArticleView
+              key={article.index} // Force reset of internal state (Category Hint)
+              article={article}
+              guesses={guesses}
+              highlightedWord={highlightedWord}
+              isGiveUp={hasGivenUp}
+              isHintMode={isHintMode}
+              onWordClick={handleHintClick}
+              revealedTokenKey={revealedTokenKey}
+              onRevealToken={setRevealedTokenKey}
+            />
+          )}
         </main>
 
         <aside

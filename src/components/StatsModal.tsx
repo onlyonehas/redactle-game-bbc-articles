@@ -1,5 +1,7 @@
 import React from 'react';
+import { usePersistence } from '../hooks/usePersistence';
 import type { GameStats } from '../hooks/useStats';
+import { SubmitScoreButton } from './submit-score-button';
 
 interface StatsModalProps {
     isOpen: boolean;
@@ -13,6 +15,8 @@ interface StatsModalProps {
 }
 
 export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, lastGame, onNewGame }) => {
+    const [username, setUsername] = usePersistence('player-username', '');
+
     if (!isOpen) return null;
 
     const winPercentage = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
@@ -126,19 +130,46 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                     })}
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#666' }}>Username for Leaderboard:</label>
+                    <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter username"
+                        style={{
+                            padding: '0.5rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px',
+                            fontSize: '1rem'
+                        }}
+                    />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', width: '100%' }}>
                     <button
                         onClick={onClose}
                         style={{
                             padding: '0.8rem 1.5rem',
                             border: '1px solid #ccc',
                             backgroundColor: 'white',
+                            color: '#bb1919',
                             cursor: 'pointer',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            flex: 1
                         }}
                     >
                         Close
                     </button>
+                    {lastGame && (
+                        <SubmitScoreButton
+                            score={lastGame.guesses}
+                            game={'redactle'}
+                            username={username}
+                            date={new Date().toISOString().split('T')[0]}
+                            style={{ flex: 1 }}
+                        />
+                    )}
                     {onNewGame && (
                         <button
                             onClick={() => {
@@ -152,11 +183,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                                 color: 'white',
                                 cursor: 'pointer',
                                 fontSize: '1rem',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                flex: 1
                             }}
                         >
                             Play Random Article
                         </button>
+
                     )}
                 </div>
             </div>
