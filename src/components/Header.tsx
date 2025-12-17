@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ articleId, headlineRevealed, onH
                 }}>
                     <span>#{articleId}</span>
                     <button onClick={onStats} className="header-btn" title="Statistics">Stats</button>
-                    <button onClick={onHelp} className="header-btn">How to play</button>
+                    <button onClick={onHelp} className="header-btn">Help</button>
                     <button onClick={onNewGame} className="header-btn">New Game</button>
                     <button onClick={onDailyGame} className="header-btn">Today's Game</button>
                     {!headlineRevealed && (

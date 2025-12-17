@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 interface GuessInputProps {
     onGuess: (word: string) => void;
     guessCount: number;
+    onToggleHint: () => void;
+    isHintMode: boolean;
 }
 
-export const GuessInput: React.FC<GuessInputProps> = ({ onGuess, guessCount }) => {
+export const GuessInput: React.FC<GuessInputProps> = ({ onGuess, guessCount, onToggleHint, isHintMode }) => {
     const [input, setInput] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -36,6 +38,24 @@ export const GuessInput: React.FC<GuessInputProps> = ({ onGuess, guessCount }) =
                 maxWidth: '600px',
                 gap: '0.5rem'
             }}>
+                <button
+                    type="button"
+                    onClick={onToggleHint}
+                    style={{
+                        padding: '0 1rem',
+                        backgroundColor: isHintMode ? '#ffd700' : '#e0e0e0',
+                        color: isHintMode ? 'black' : '#333',
+                        border: '1px solid #ccc',
+                        fontWeight: isHintMode ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    title="Click, then click a word to reveal it"
+                >
+                    Hint
+                </button>
                 <input
                     type="text"
                     value={input}

@@ -12,9 +12,10 @@ interface StatsModalProps {
         globalAverage: number;
     } | null;
     onNewGame?: () => void;
+    onDailyGame?: () => void;
 }
 
-export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, lastGame, onNewGame }) => {
+export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, lastGame, onNewGame, onDailyGame }) => {
     const [username, setUsername] = usePersistence('player-username', '');
 
     if (!isOpen) return null;
@@ -51,11 +52,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                         style={{
                             background: 'none',
                             border: 'none',
-                            fontSize: '1.5rem',
+                            fontSize: '2rem',
                             cursor: 'pointer',
-                            color: '#666',
-                            padding: '0 0.5rem'
+                            color: 'black',
+                            padding: '0 0.5rem',
+                            lineHeight: '1'
                         }}
+                        aria-label="Close statistics"
                     >
                         &times;
                     </button>
@@ -130,20 +133,23 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                     })}
                 </div>
 
-                {lastGame && (<div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ fontSize: '0.9rem', color: '#666' }}>Username for Leaderboard:</label>
+                {lastGame && (<div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #eee', padding: '1rem', borderRadius: '4px' }}>
+                    <label style={{ fontSize: '0.9rem', color: '#666', fontWeight: 'bold' }}>
+                        Enter a username to submit your score:
+                    </label>
                     <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter username"
+                        placeholder="e.g. RedactlePlayer123"
                         style={{
-                            padding: '0.5rem',
-                            border: '1px solid #ccc',
+                            padding: '0.6rem',
+                            border: '1px solid #bb1919',
                             borderRadius: '4px',
                             fontSize: '1rem'
                         }}
                     />
+                    {!username && <span style={{ fontSize: '0.8rem', color: '#bb1919' }}>* Required for submission</span>}
                 </div>)}
 
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', width: '100%' }}>
@@ -151,11 +157,12 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                         onClick={onClose}
                         style={{
                             padding: '0.8rem 1.5rem',
-                            border: '1px solid #ccc',
-                            backgroundColor: 'white',
-                            color: '#bb1919',
+                            border: '1px solid #333',
+                            backgroundColor: '#333',
+                            color: 'white',
                             cursor: 'pointer',
                             fontSize: '1rem',
+                            fontWeight: 'bold',
                             flex: 1
                         }}
                     >
@@ -170,6 +177,26 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                             style={{ flex: 1 }}
                         />
                     )}
+                    {onDailyGame && (
+                        <button
+                            onClick={() => {
+                                onDailyGame();
+                                onClose();
+                            }}
+                            style={{
+                                padding: '0.8rem 1.5rem',
+                                border: '1px solid #bb1919',
+                                backgroundColor: 'white',
+                                color: '#bb1919',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: 'bold',
+                                flex: 1
+                            }}
+                        >
+                            Today's Game
+                        </button>
+                    )}
                     {onNewGame && (
                         <button
                             onClick={() => {
@@ -182,14 +209,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                                 backgroundColor: '#bb1919',
                                 color: 'white',
                                 cursor: 'pointer',
-                                fontSize: '1rem',
+                                fontSize: '0.9rem',
                                 fontWeight: 'bold',
                                 flex: 1
                             }}
                         >
-                            Play Random Article
+                            New Game
                         </button>
-
                     )}
                 </div>
             </div>

@@ -15,27 +15,10 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 function App() {
   const [article, setArticle] = useState(getEmptyArticle);
   const [isLoading, setIsLoading] = useState(true);
-  // const [articleIndex, setArticleIndex] = useState(-1);
   const [articleIndex, setArticleIndex] = usePersistence<number>(`current-article-index`, -1);
 
-  useEffect(() => {
-    if (articleIndex === -1) {
-      getDailyArticle().then((article) => {
-        setArticle(article);
-        setArticleIndex(article.index);
-        setIsLoading(false);
-      });
-    } else {
-      getArticleByID(articleIndex).then((article) => {
-        setArticle(article);
-        setIsLoading(false);
-      });
-    }
-
-  }, []);
-
   // Statistics
-  const { stats, recordWin, recordLoss } = useStats(); // Added recordLoss
+  const { stats, recordWin, recordLoss } = useStats();
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [lastGameStats, setLastGameStats] = useState<{ guesses: number; globalAverage: number } | null>(null);
 
@@ -58,8 +41,34 @@ function App() {
 
   // New Features State
   const [hasGivenUp, setHasGivenUp] = useState(false);
-  const [isHintMode, setIsHintMode] = useState(false); // If true, next click on word reveals it
-  const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null); // Key of the single token showing char count
+  const [isHintMode, setIsHintMode] = useState(false);
+  const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadArticle = async () => {
+      let loadedArticle;
+      if (articleIndex === -1) {
+        loadedArticle = await getDailyArticle();
+      } else {
+        loadedArticle = await getArticleByID(articleIndex);
+      }
+
+      setArticle(loadedArticle);
+      setArticleIndex(loadedArticle.index);
+      setIsLoading(false);
+
+      // If already solved, reconstruction of lastGameStats for the modal
+      const isSolvedKey = `stats-won-${loadedArticle.index}`;
+      if (localStorage.getItem(isSolvedKey)) {
+        setLastGameStats({
+          guesses: guessList.length,
+          globalAverage: loadedArticle.avgGuesses || 45
+        });
+      }
+    };
+
+    loadArticle();
+  }, [articleIndex, guessList.length]);
 
   console.log('App rendering, Article ID:', article.index);
 
@@ -76,7 +85,7 @@ function App() {
 
     // Auto-highlight the just-guessed word
     setHighlightedWord(cleaned);
-    setRevealedTokenKey(null); // Clear character reveal on guess
+    setRevealedTokenKey(null);
 
     if (guesses.has(cleaned)) return;
 
@@ -89,12 +98,32 @@ function App() {
 
     const cleaned = cleanWord(tokenText);
     if (cleaned && !guesses.has(cleaned)) {
+      // Check if this is a headline word
+      const headTokens = tokenize(article.headline);
+      const isHeadlineWord = headTokens.some(t => t.isWord && cleanWord(t.text) === cleaned);
+
+      if (isHeadlineWord) {
+        const hiddenUniqueWords = new Set(
+          headTokens
+            .filter(t => t.isWord)
+            .map(t => cleanWord(t.text))
+            .filter(w => isRedacted(w, guesses))
+        );
+
+        if (hiddenUniqueWords.size === 1 && hiddenUniqueWords.has(cleaned)) {
+          alert("You have to guess the last word of the title on your own!");
+          setIsHintMode(false);
+          return;
+        }
+      }
+
       handleGuess(cleaned);
-      setIsHintMode(false); // Turn off after use
+      setIsHintMode(false);
     }
   };
 
   const startDailyGame = () => {
+    setIsLoading(true);
     getDailyArticle().then((article) => {
       setArticle(article);
       setArticleIndex(article.index);
@@ -108,50 +137,45 @@ function App() {
     setIsHintMode(false);
     setRevealedTokenKey(null);
     window.scrollTo(0, 0);
-  }
-
-  const startNewGame = (random: boolean = true) => {
-    setIsLoading(true);
-    if (random) {
-      getRandomArticle(articleIndex).then((article) => {
-        setArticle(article);
-        setArticleIndex(article.index);
-        localStorage.removeItem(`guesses-v2-${article.index}`);
-        localStorage.removeItem(`stats-won-${article.index}`);
-        setIsLoading(false);
-      });
-    } else {
-      getArticleByID(articleIndex).then((article) => {
-        setArticle(article);
-        setArticleIndex(article.index);
-        localStorage.removeItem(`guesses-v2-${article.index}`);
-        localStorage.removeItem(`stats-won-${article.index}`);
-        setIsLoading(false);
-      });
-    }
-
-    setLastGuess(null);
-    setHighlightedWord(null);
-    setHasGivenUp(false);
-    setIsStatsOpen(false);
-    setIsHintMode(false);
-    setRevealedTokenKey(null);
-    window.scrollTo(0, 0);
   };
 
+  const startNewGame = () => {
+    if (!window.confirm("Are you sure you want to start a new game?")) return;
 
+    setIsLoading(true);
+    const currentIdx = article.index !== undefined ? article.index : -1;
+    getRandomArticle(currentIdx).then((article) => {
+      // Reset persistent data for this article
+      localStorage.removeItem(`guesses-v2-${article.index}`);
+      localStorage.removeItem(`stats-won-${article.index}`);
+
+      setArticle(article);
+      setArticleIndex(article.index);
+      setLastGuess(null);
+      setHighlightedWord(null);
+      setHasGivenUp(false);
+      setIsStatsOpen(false);
+      setIsHintMode(false);
+      setRevealedTokenKey(null);
+      window.scrollTo(0, 0);
+
+      // Reset loading state after a brief delay
+      setTimeout(() => setIsLoading(false), 100);
+    });
+  };
 
   // Check win condition
   const headlineTokens = useMemo(() => tokenize(article.headline), [article]);
-  const isHeadlineSolved = headlineTokens
+  const isHeadlineSolved = article.index >= 0 && headlineTokens
     .filter(t => t.isWord)
-    .every(t => !isRedacted(t.text, guesses)) && article.content?.length > 1;
+    .every(t => !isRedacted(t.text, guesses));
 
   // Effect for Win
   useEffect(() => {
-    if (isHeadlineSolved && !hasGivenUp) {
+    if (isHeadlineSolved && !hasGivenUp && guessList.length > 0) {
       const key = `stats-won-${article.index}`;
       if (!localStorage.getItem(key)) {
+        // Use guessList.length here - it will be the updated value when this effect runs
         recordWin(guessList.length);
         localStorage.setItem(key, 'true');
       }
@@ -163,16 +187,15 @@ function App() {
     }
   }, [isHeadlineSolved, hasGivenUp, article.index, article.avgGuesses, guessList.length, recordWin]);
 
-
   return (
     <div className="App">
       <Header
-        articleId={articleIndex}
+        articleId={article.index}
         headlineRevealed={isHeadlineSolved || hasGivenUp}
         onHelp={() => setIsHelpOpen(true)}
         onStats={() => setIsStatsOpen(true)}
-        onNewGame={() => startNewGame(true)}
-        onDailyGame={() => startDailyGame()}
+        onNewGame={startNewGame}
+        onDailyGame={startDailyGame}
         onGiveUp={handleGiveUp}
       />
 
@@ -196,18 +219,18 @@ function App() {
         onClick={() => {
           setHighlightedWord(null);
           setRevealedTokenKey(null);
-        }} // Click background to clear highlight and reveals
+        }}
       >
         <main className="article-container">
           {isLoading ? (
             <LoadingSpinner />
           ) : (
             <ArticleView
-              key={article.index} // Force reset of internal state (Category Hint)
+              key={article.index}
               article={article}
               guesses={guesses}
               highlightedWord={highlightedWord}
-              isGiveUp={hasGivenUp}
+              isGiveUp={hasGivenUp || isHeadlineSolved}
               isHintMode={isHintMode}
               onWordClick={handleHintClick}
               revealedTokenKey={revealedTokenKey}
@@ -218,13 +241,13 @@ function App() {
 
         <aside
           className="desktop-history"
-          onClick={(e) => e.stopPropagation()} // Prevent sidebar clicks from clearing
+          onClick={(e) => e.stopPropagation()}
         >
           <GuessHistory
             guesses={guessList}
             onHighlight={(word) => {
               setHighlightedWord(word);
-              setRevealedTokenKey(null); // Clear reveal when highlighting from sidebar
+              setRevealedTokenKey(null);
             }}
             highlightedWord={highlightedWord}
             onToggleHint={() => setIsHintMode(prev => !prev)}
@@ -233,11 +256,15 @@ function App() {
         </aside>
       </div>
 
-      {/* Mobile/Floating Feedback */}
       <GuessFeedback lastGuess={lastGuess} />
 
       {!isHeadlineSolved && !hasGivenUp && (
-        <GuessInput onGuess={handleGuess} guessCount={guesses.size} />
+        <GuessInput
+          onGuess={handleGuess}
+          guessCount={guesses.size}
+          onToggleHint={() => setIsHintMode(prev => !prev)}
+          isHintMode={isHintMode}
+        />
       )}
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -247,7 +274,8 @@ function App() {
         onClose={() => setIsStatsOpen(false)}
         stats={stats}
         lastGame={lastGameStats}
-        onNewGame={() => startNewGame(true)}
+        onNewGame={startNewGame}
+        onDailyGame={startDailyGame}
       />
     </div>
   );

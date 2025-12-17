@@ -1,8 +1,16 @@
+import React from 'react';
 
-export function LoadingSpinner() {
+export const LoadingSpinner: React.FC = () => {
     return (
-        <div className="flex justify-center items-center py-20">
-            <div className="bbc-spinner"></div>
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '300px',
+            color: '#666',
+            fontSize: '1.2rem'
+        }}>
+            Loading article...
         </div>
     );
-}
+};
