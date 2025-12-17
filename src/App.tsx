@@ -2,9 +2,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ArticleView } from './components/ArticleView';
 import { GuessInput } from './components/GuessInput';
+import { getDailyArticle, getEmptyArticle } from './data/articles';
 import { HelpModal } from './components/HelpModal';
 import { GuessFeedback } from './components/GuessFeedback';
-import { getDailyArticle, ARTICLES } from './data/articles'; // ARTICLES needed for random pick
 import { cleanWord, isRedacted, tokenize, countOccurrences } from './utils/gameLogic';
 import { usePersistence } from './hooks/usePersistence';
 import { useStats } from './hooks/useStats';
@@ -12,28 +12,23 @@ import { GuessHistory } from './components/GuessHistory';
 import { StatsModal } from './components/StatsModal';
 
 function App() {
-  // Article ID Management - Support Random Play
-  // Default to daily, but allow override via state
-  const [currentArticleId, setCurrentArticleId] = useState<string>(() => {
-    return getDailyArticle().id;
+  const [article, setArticle] = useState(getEmptyArticle);
+  useEffect(()=> {
+    getDailyArticle().then((article)=> {
+      setArticle(article);
   });
-
-  const article = useMemo(() =>
-    ARTICLES.find(a => a.id === currentArticleId) || getDailyArticle(),
-    [currentArticleId]);
+  }, []);
 
   // Statistics
   const { stats, recordWin, recordLoss } = useStats(); // Added recordLoss
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [lastGameStats, setLastGameStats] = useState<{ guesses: number; globalAverage: number } | null>(null);
 
-  // ... (lines 30-101)
-
   const handleGiveUp = () => {
     if (confirm('Are you sure you want to give up? This will reveal the entire article.')) {
       setHasGivenUp(true);
-      recordLoss(); // Record the loss
-      setGuessList([]); // Clear guesses as requested
+      recordLoss();
+      setGuessList([]);
       setLastGuess(null);
       setHighlightedWord(null);
     }
@@ -85,22 +80,21 @@ function App() {
   };
 
   const startNewGame = (random: boolean = true) => {
-    let nextId = getDailyArticle().id;
-    if (random) {
-      // Pick random article different from current
-      const others = ARTICLES.filter(a => a.id !== currentArticleId);
-      if (others.length > 0) {
-        const randomArticle = others[Math.floor(Math.random() * others.length)];
-        nextId = randomArticle.id;
-      }
-    }
+    let nextId = article.id;
+    // if (random) {
+    //   // Pick random article different from current
+    //   const others = ARTICLES.filter(a => a.id !== currentArticleId);
+    //   if (others.length > 0) {
+    //     const randomArticle = others[Math.floor(Math.random() * others.length)];
+    //     nextId = randomArticle.id;
+    //   }
+    // }
 
     // Reset persistent data for this article so it's a "New Game"
     // Note: We use the key format from usePersistence
     localStorage.removeItem(`guesses-v2-${nextId}`);
     localStorage.removeItem(`stats-won-${nextId}`);
 
-    setCurrentArticleId(nextId);
     setLastGuess(null);
     setHighlightedWord(null);
     setHasGivenUp(false);
@@ -116,7 +110,7 @@ function App() {
   const headlineTokens = useMemo(() => tokenize(article.headline), [article]);
   const isHeadlineSolved = headlineTokens
     .filter(t => t.isWord)
-    .every(t => !isRedacted(t.text, guesses));
+    .every(t => !isRedacted(t.text, guesses)) && article.content?.length > 1;
 
   // Effect for Win
   useEffect(() => {
