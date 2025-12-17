@@ -1,5 +1,5 @@
 interface HeaderProps {
-    articleId: string;
+    articleId: number;
     headlineRevealed: boolean;
     onHelp: () => void;
     onStats: () => void;

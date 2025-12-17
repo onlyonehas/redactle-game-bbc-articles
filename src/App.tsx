@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ArticleView } from './components/ArticleView';
 import { GuessInput } from './components/GuessInput';
-import { getDailyArticle, getEmptyArticle } from './data/articles';
+import { getDailyArticle, getEmptyArticle, getArticleByID, getRandomArticle } from './data/articles';
 import { HelpModal } from './components/HelpModal';
 import { GuessFeedback } from './components/GuessFeedback';
 import { cleanWord, isRedacted, tokenize, countOccurrences } from './utils/gameLogic';
@@ -42,7 +42,7 @@ function App() {
 
   // Game State
   // Store guesses as OBJECTS { word, count } in persistence
-  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.id}`, []);
+  const [guessList, setGuessList] = usePersistence<{ word: string, count: number }[]>(`guesses-v2-${article.index}`, []);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [lastGuess, setLastGuess] = useState<{ word: string; count: number } | null>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
@@ -52,7 +52,7 @@ function App() {
   const [isHintMode, setIsHintMode] = useState(false); // If true, next click on word reveals it
   const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null); // Key of the single token showing char count
 
-  console.log('App rendering, Article ID:', article.id);
+  console.log('App rendering, Article ID:', article.index);
 
   const guesses = useMemo(() => new Set(guessList.map(g => g.word)), [guessList]);
 
@@ -125,7 +125,7 @@ function App() {
   // Effect for Win
   useEffect(() => {
     if (isHeadlineSolved && !hasGivenUp) {
-      const key = `stats-won-${article.id}`;
+      const key = `stats-won-${article.index}`;
       if (!localStorage.getItem(key)) {
         recordWin(guessList.length);
         localStorage.setItem(key, 'true');
@@ -136,13 +136,13 @@ function App() {
       });
       setIsStatsOpen(true);
     }
-  }, [isHeadlineSolved, hasGivenUp, article.id, article.avgGuesses, guessList.length, recordWin]);
+  }, [isHeadlineSolved, hasGivenUp, article.index, article.avgGuesses, guessList.length, recordWin]);
 
 
   return (
     <div className="App">
       <Header
-        articleId={article.id}
+        articleId={articleIndex}
         headlineRevealed={isHeadlineSolved || hasGivenUp}
         onHelp={() => setIsHelpOpen(true)}
         onStats={() => setIsStatsOpen(true)}
