@@ -1,24 +1,73 @@
 import type { Article } from '../utils/gameLogic';
 
-const ARTICLES: Article[] = [
+const articleIds = [
     {
-        id: '0',
-        headline: "",
-        category: "",
-        date: "",
-        content: []
+        index: 0,
+        category: 'Gaming/TV',
+        id: 'cvgr488vlmmo'
+    },
+    {
+        index: 1,
+        category: 'Cats',
+        id: 'cqxqzlrzlx1o'
+    },
+    {
+        index: 2,
+        category: 'Christmas',
+        id: 'c3v1n95p31go'
+    },
+    {
+        index: 3,
+        category: 'Black Friday',
+        id: 'c3r7d820288o'
+    },
+    {
+        index: 4,
+        category: 'Dinosaurs',
+        id: 'cde65y7p995o'
     }
 ];
 
+const emptyArticle: Article =
+{
+    index: -1,
+    headline: "",
+    category: "",
+    date: "",
+    content: []
+};
+
+
 export function getEmptyArticle(): Article {
-    return ARTICLES[0];
+    return emptyArticle;
 }
 
-export async function getDailyArticle(): Promise<Article> {
-    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/`;
+export async function getArticleByID(id: number): Promise<Article> {
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[id].id}`;
 
     const response = await fetch(url);
     const json = await response.json();
 
-    return json;
+    return { ...json, index: articleIds[id].index, category: articleIds[id].category };
+}
+
+export async function getRandomArticle(currentIndex: number): Promise<Article> {
+    const others = articleIds.filter(a => a.index !== currentIndex);
+    const randomArticle = others[Math.floor(Math.random() * others.length)];
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${randomArticle.id}`;
+
+    const response = await fetch(url);
+    const json = await response.json();
+
+    return { ...json, index: randomArticle.index, category: randomArticle.category };
+}
+
+export async function getDailyArticle(): Promise<Article> {
+    const dailyIndex = 1;
+    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[dailyIndex].id}`;
+
+    const response = await fetch(url);
+    const json = await response.json();
+
+    return { ...json, index: dailyIndex, category: articleIds[dailyIndex].category };
 }
