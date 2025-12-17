@@ -47,11 +47,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                         style={{
                             background: 'none',
                             border: 'none',
-                            fontSize: '1.5rem',
+                            fontSize: '2rem',
                             cursor: 'pointer',
-                            color: '#666',
-                            padding: '0 0.5rem'
+                            color: 'black',
+                            padding: '0 0.5rem',
+                            lineHeight: '1'
                         }}
+                        aria-label="Close statistics"
                     >
                         &times;
                     </button>
@@ -131,10 +133,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                         onClick={onClose}
                         style={{
                             padding: '0.8rem 1.5rem',
-                            border: '1px solid #ccc',
-                            backgroundColor: 'white',
+                            border: '1px solid #333',
+                            backgroundColor: '#333',
+                            color: 'white',
                             cursor: 'pointer',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            flex: 1
                         }}
                     >
                         Close

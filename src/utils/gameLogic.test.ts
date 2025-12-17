@@ -14,11 +14,11 @@ describe('gameLogic', () => {
     describe('tokenize', () => {
         it('splits text into tokens', () => {
             const tokens = tokenize("Hello, world!");
-            // Expect: "Hello", ",", " ", "world", "!"
-            // Implementation splits by regex group
-            expect(tokens.map(t => t.text)).toEqual(['Hello', ',', ' ', 'world', '!']);
+            // Expect: "Hello", ", ", "world", "!"
+            // Implementation groups non-alphanumeric characters by regex
+            expect(tokens.map(t => t.text)).toEqual(['Hello', ', ', 'world', '!']);
             expect(tokens[0].isWord).toBe(true);
-            expect(tokens[1].isWord).toBe(false); // comma
+            expect(tokens[1].isWord).toBe(false); // comma + space
         });
 
         it('handles contractions (current behavior)', () => {

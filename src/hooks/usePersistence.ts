@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export function usePersistence<T>(key: string, initialValue: T) {
     const [storedValue, setStoredValue] = useState<T>(() => {
@@ -22,15 +22,22 @@ export function usePersistence<T>(key: string, initialValue: T) {
         }
     }, [key, initialValue]);
 
-    const setValue = (value: T | ((val: T) => T)) => {
+    const setValue = useCallback((value: T | ((val: T) => T)) => {
         try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+            // Need to handle functional update based on *current* state if possible, but 
+            // since this is a custom hook wrapper around useState, we can use the setStoredValue callback form
+            // wrapped in our own logic? 
+            // Actually, we can just use setStoredValue(prev => ...) but we need to compute the new value for localStorage.
+
+            setStoredValue(prevStoredValue => {
+                const valueToStore = value instanceof Function ? value(prevStoredValue) : value;
+                window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                return valueToStore;
+            });
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [key]);
 
     return [storedValue, setValue] as const;
 }

@@ -10,6 +10,7 @@ import { usePersistence } from './hooks/usePersistence';
 import { useStats } from './hooks/useStats';
 import { GuessHistory } from './components/GuessHistory';
 import { StatsModal } from './components/StatsModal';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 function App() {
   // Article ID Management - Support Random Play
@@ -17,6 +18,7 @@ function App() {
   const [currentArticleId, setCurrentArticleId] = useState<string>(() => {
     return getDailyArticle().id;
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const article = useMemo(() =>
     ARTICLES.find(a => a.id === currentArticleId) || getDailyArticle(),
@@ -79,12 +81,38 @@ function App() {
 
     const cleaned = cleanWord(tokenText);
     if (cleaned && !guesses.has(cleaned)) {
+      // Check if this is a headline word
+      const headTokens = tokenize(article.headline);
+      const isHeadlineWord = headTokens.some(t => t.isWord && cleanWord(t.text) === cleaned);
+
+      if (isHeadlineWord) {
+        // Wait, isRedacted signature: isRedacted(word, guesses). Returns true if hidden (redacted).
+        // Let's re-verify logic.
+        // isRedacted returns TRUE if the word should be HIDDEN.
+
+        const hiddenUniqueWords = new Set(
+          headTokens
+            .filter(t => t.isWord)
+            .map(t => cleanWord(t.text))
+            .filter(w => isRedacted(w, guesses))
+        );
+
+        if (hiddenUniqueWords.size === 1 && hiddenUniqueWords.has(cleaned)) {
+          alert("You have to guess the last word of the title on your own!");
+          setIsHintMode(false);
+          return;
+        }
+      }
+
       handleGuess(cleaned);
       setIsHintMode(false); // Turn off after use
     }
   };
 
   const startNewGame = (random: boolean = true) => {
+    if (!window.confirm("Are you sure you want to start a new game?")) return;
+
+    setIsLoading(true);
     let nextId = getDailyArticle().id;
     if (random) {
       // Pick random article different from current
@@ -144,8 +172,6 @@ function App() {
         onStats={() => setIsStatsOpen(true)}
         onNewGame={() => startNewGame(true)}
         onGiveUp={handleGiveUp}
-        onToggleHint={() => setIsHintMode(prev => !prev)}
-        isHintMode={isHintMode}
       />
 
       {isHintMode && (
@@ -171,18 +197,22 @@ function App() {
         }} // Click background to clear highlight and reveals
       >
         <main className="article-container">
-          <ArticleView
-            key={article.id} // Force reset of internal state (Category Hint)
-            article={article}
-            guesses={guesses}
-            highlightedWord={highlightedWord}
-            isGiveUp={hasGivenUp}
-            isHintMode={isHintMode}
-            onWordClick={handleHintClick}
-            revealedTokenKey={revealedTokenKey}
-            onRevealToken={setRevealedTokenKey}
-          />
-        </main>
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <ArticleView
+              key={article.id} // Force reset of internal state (Category Hint)
+              article={article}
+              guesses={guesses}
+              highlightedWord={highlightedWord}
+              isGiveUp={hasGivenUp || isHeadlineSolved}
+              isHintMode={isHintMode}
+              onWordClick={handleHintClick}
+              revealedTokenKey={revealedTokenKey}
+              onRevealToken={setRevealedTokenKey}
+            />
+          )}
+        </main >
 
         <aside
           className="desktop-history"
@@ -197,14 +227,20 @@ function App() {
             highlightedWord={highlightedWord}
           />
         </aside>
-      </div>
+      </div >
 
       {/* Mobile/Floating Feedback */}
-      <GuessFeedback lastGuess={lastGuess} />
+      < GuessFeedback lastGuess={lastGuess} />
 
       {!isHeadlineSolved && !hasGivenUp && (
-        <GuessInput onGuess={handleGuess} guessCount={guesses.size} />
-      )}
+        <GuessInput
+          onGuess={handleGuess}
+          guessCount={guesses.size}
+          onToggleHint={() => setIsHintMode(prev => !prev)}
+          isHintMode={isHintMode}
+        />
+      )
+      }
 
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
@@ -215,7 +251,7 @@ function App() {
         lastGame={lastGameStats}
         onNewGame={() => startNewGame(true)}
       />
-    </div>
+    </div >
   );
 }
 
