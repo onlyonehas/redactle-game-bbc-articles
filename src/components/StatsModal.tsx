@@ -146,7 +146,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', width: '100%' }}>
                     <button
                         onClick={onClose}
                         style={{
@@ -155,17 +155,20 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                             backgroundColor: 'white',
                             color: '#bb1919',
                             cursor: 'pointer',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            flex: 1
                         }}
                     >
                         Close
                     </button>
                     {lastGame && (
-                        <SubmitScoreButton 
-                        score={lastGame.guesses} 
-                        game={'redactle'} 
-                        username={username} 
-                        date={new Date().toISOString().split('T')[0]} />
+                        <SubmitScoreButton
+                            score={lastGame.guesses}
+                            game={'redactle'}
+                            username={username}
+                            date={new Date().toISOString().split('T')[0]}
+                            style={{ flex: 1 }}
+                        />
                     )}
                     {onNewGame && (
                         <button
@@ -180,7 +183,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({ isOpen, onClose, stats, 
                                 color: 'white',
                                 cursor: 'pointer',
                                 fontSize: '1rem',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                flex: 1
                             }}
                         >
                             Play Random Article
