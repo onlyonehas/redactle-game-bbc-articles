@@ -10,13 +10,19 @@ import { usePersistence } from './hooks/usePersistence';
 import { useStats } from './hooks/useStats';
 import { GuessHistory } from './components/GuessHistory';
 import { StatsModal } from './components/StatsModal';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 function App() {
   const [article, setArticle] = useState(getEmptyArticle);
-  useEffect(()=> {
-    getDailyArticle().then((article)=> {
+  const [isLoading, setIsLoading] = useState(true);
+  const [articleIndex, setArticleIndex] = useState(-1);
+  useEffect(() => {
+    getDailyArticle().then((article) => {
       setArticle(article);
-  });
+      console.log(article)
+      setArticleIndex(article.index);
+      setIsLoading(false);
+    });
   }, []);
 
   // Statistics
@@ -80,20 +86,24 @@ function App() {
   };
 
   const startNewGame = (random: boolean = true) => {
-    let nextId = article.id;
-    // if (random) {
-    //   // Pick random article different from current
-    //   const others = ARTICLES.filter(a => a.id !== currentArticleId);
-    //   if (others.length > 0) {
-    //     const randomArticle = others[Math.floor(Math.random() * others.length)];
-    //     nextId = randomArticle.id;
-    //   }
-    // }
-
-    // Reset persistent data for this article so it's a "New Game"
-    // Note: We use the key format from usePersistence
-    localStorage.removeItem(`guesses-v2-${nextId}`);
-    localStorage.removeItem(`stats-won-${nextId}`);
+    setIsLoading(true);
+    if (random) {
+      getRandomArticle(articleIndex).then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        localStorage.removeItem(`guesses-v2-${article.index}`);
+        localStorage.removeItem(`stats-won-${article.index}`);
+        setIsLoading(false);
+      });
+    } else {
+      getArticleByID(articleIndex).then((article) => {
+        setArticle(article);
+        setArticleIndex(article.index);
+        localStorage.removeItem(`guesses-v2-${article.index}`);
+        localStorage.removeItem(`stats-won-${article.index}`);
+        setIsLoading(false);
+      });
+    }
 
     setLastGuess(null);
     setHighlightedWord(null);
@@ -165,17 +175,21 @@ function App() {
         }} // Click background to clear highlight and reveals
       >
         <main className="article-container">
-          <ArticleView
-            key={article.id} // Force reset of internal state (Category Hint)
-            article={article}
-            guesses={guesses}
-            highlightedWord={highlightedWord}
-            isGiveUp={hasGivenUp}
-            isHintMode={isHintMode}
-            onWordClick={handleHintClick}
-            revealedTokenKey={revealedTokenKey}
-            onRevealToken={setRevealedTokenKey}
-          />
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <ArticleView
+              key={article.index} // Force reset of internal state (Category Hint)
+              article={article}
+              guesses={guesses}
+              highlightedWord={highlightedWord}
+              isGiveUp={hasGivenUp}
+              isHintMode={isHintMode}
+              onWordClick={handleHintClick}
+              revealedTokenKey={revealedTokenKey}
+              onRevealToken={setRevealedTokenKey}
+            />
+          )}
         </main>
 
         <aside
