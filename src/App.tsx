@@ -17,21 +17,6 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [articleIndex, setArticleIndex] = usePersistence<number>(`current-article-index`, -1);
 
-  useEffect(() => {
-    if (articleIndex === -1) {
-      getDailyArticle().then((article) => {
-        setArticle(article);
-        setArticleIndex(article.index);
-        setIsLoading(false);
-      });
-    } else {
-      getArticleByID(articleIndex).then((article) => {
-        setArticle(article);
-        setIsLoading(false);
-      });
-    }
-  }, []);
-
   // Statistics
   const { stats, recordWin, recordLoss } = useStats();
   const [isStatsOpen, setIsStatsOpen] = useState(false);
@@ -58,6 +43,32 @@ function App() {
   const [hasGivenUp, setHasGivenUp] = useState(false);
   const [isHintMode, setIsHintMode] = useState(false);
   const [revealedTokenKey, setRevealedTokenKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadArticle = async () => {
+      let loadedArticle;
+      if (articleIndex === -1) {
+        loadedArticle = await getDailyArticle();
+      } else {
+        loadedArticle = await getArticleByID(articleIndex);
+      }
+
+      setArticle(loadedArticle);
+      setArticleIndex(loadedArticle.index);
+      setIsLoading(false);
+
+      // If already solved, reconstruction of lastGameStats for the modal
+      const isSolvedKey = `stats-won-${loadedArticle.index}`;
+      if (localStorage.getItem(isSolvedKey)) {
+        setLastGameStats({
+          guesses: guessList.length,
+          globalAverage: loadedArticle.avgGuesses || 45
+        });
+      }
+    };
+
+    loadArticle();
+  }, [articleIndex, guessList.length]);
 
   console.log('App rendering, Article ID:', article.index);
 
@@ -264,6 +275,7 @@ function App() {
         stats={stats}
         lastGame={lastGameStats}
         onNewGame={startNewGame}
+        onDailyGame={startDailyGame}
       />
     </div>
   );
