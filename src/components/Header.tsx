@@ -124,79 +124,79 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
       <style>{`
-                .header-actions {
-                    font-size: 1rem;
-                    display: flex;
-                    gap: 0.4rem;
-                    align-items: center;
-                    justify-content: flex-end;
-                }
-                .header-btn {
-                    background-color: transparent;
-                    border: 1px solid rgba(255,255,255,0.4);
-                    font-size: 0.75rem;
-                    padding: 0 0.8rem;
-                    cursor: pointer;
-                    color: white;
-                    font-weight: 700;
-                    white-space: nowrap;
-                    min-height: 2rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: border-color 0.2s, background-color 0.2s;
-                    letter-spacing: 0.05em;
-                }
-                .header-btn:hover:not(:disabled) {
-                    background-color: rgba(255,255,255,0.15);
-                    border-color: white;
-                }
-                .header-btn:disabled {
-                    opacity: 0.4;
-                    cursor: not-allowed;
-                }
-                .article-id {
-                    font-weight: 700;
-                    font-size: 0.85rem;
-                    margin-right: 0.5rem;
-                    color: rgba(255,255,255,0.9);
-                }
-                @media (max-width: 900px) {
-                    header {
-                        height: auto !important;
-                        padding-bottom: 0.75rem;
-                    }
-                    header > div {
-                        flex-direction: column;
-                        height: auto !important;
-                        padding: 0.75rem 1rem !important;
-                        gap: 0.75rem;
-                        align-items: flex-start !important;
-                    }
-                    header > div > div:first-child {
-                        width: 100%;
-                    }
-                    header > div > div:first-child > img {
-                        max-height: 4rem !important;
-                        height: auto !important;
-                    }
-                    .header-actions {
-                        width: 100%;
-                        justify-content: flex-start;
-                        overflow-x: auto;
-                        padding-bottom: 4px;
-                        scrollbar-width: none; /* Hide scrollbar for clean look */
-                    }
-                    .header-actions::-webkit-scrollbar {
-                        display: none;
-                    }
-                    .header-btn {
-                        padding: 0 1rem;
-                        min-height: 2.5rem;
-                        font-size: 0.7rem;
-                    }
-                }
-            `}</style>
+        .header-actions {
+          font-size: 1rem;
+          display: flex;
+          gap: 0.4rem;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .header-btn {
+          background-color: transparent;
+          border: 1px solid rgba(255,255,255,0.4);
+          font-size: 0.75rem;
+          padding: 0 0.8rem;
+          cursor: pointer;
+          color: white;
+          font-weight: 700;
+          white-space: nowrap;
+          min-height: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: border-color 0.2s, background-color 0.2s;
+          letter-spacing: 0.05em;
+        }
+        .header-btn:hover:not(:disabled) {
+          background-color: rgba(255,255,255,0.15);
+          border-color: white;
+        }
+        .header-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .article-id {
+          font-weight: 700;
+          font-size: 0.85rem;
+          margin-right: 0.5rem;
+          color: rgba(255,255,255,0.9);
+        }
+        @media (max-width: 900px) {
+          header {
+            height: auto !important;
+            padding-bottom: 0.75rem;
+          }
+          header > div {
+            flex-direction: column;
+            height: auto !important;
+            padding: 0.75rem 1rem !important;
+            gap: 0.75rem;
+            align-items: flex-start !important;
+          }
+          header > div > div:first-child {
+            width: 100%;
+          }
+          header > div > div:first-child > div:first-child img {
+            max-height: 4rem !important;
+            height: auto !important;
+          }
+          .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+          }
+          .header-actions::-webkit-scrollbar {
+            display: none;
+          }
+          .header-btn {
+            padding: 0 1rem;
+            min-height: 2.5rem;
+            font-size: 0.7rem;
+          }
+        }
+      `}</style>
     </header>
   );
 };
