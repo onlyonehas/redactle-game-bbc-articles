@@ -1,40 +1,25 @@
 import type { Article } from '../utils/gameLogic';
+import { articleList } from './article-list';
 
-const articleIds = [
-    {
-        index: 0,
-        category: 'Gaming/TV',
-        id: 'cvgr488vlmmo',
-        avgGuesses: 42  // Gaming/TV topics tend to be moderate difficulty
-    },
-    {
-        index: 1,
-        category: 'Cats',
-        id: 'cqxqzlrzlx1o',
-        avgGuesses: 28  // Cats is a simple, common topic
-    },
-    {
-        index: 2,
-        category: 'Christmas',
-        id: 'c3v1n95p31go',
-        avgGuesses: 35  // Seasonal topic, moderately easy
-    },
-    {
-        index: 3,
-        category: 'Black Friday',
-        id: 'c3r7d820288o',
-        avgGuesses: 38  // Shopping event, moderate difficulty
-    },
-    {
-        index: 4,
-        category: 'Dinosaurs',
-        id: 'cde65y7p995o',
-        avgGuesses: 52  // Scientific topic, more challenging
+// Import all pre-fetched articles
+// Dynamically import all pre-fetched high-profile articles using Vite's glob import
+const modules = import.meta.glob('./prefetched/article-*.json', { eager: true });
+
+const prefetchedArticles: Record<number, any> = {};
+
+// Parse the file names to get the indices
+Object.entries(modules).forEach(([path, module]) => {
+    const match = path.match(/article-(\d+)\.json$/);
+    if (match) {
+        const index = parseInt(match[1]);
+        prefetchedArticles[index] = (module as any).default;
     }
-];
+});
 
-const emptyArticle: Article =
-{
+
+
+
+const emptyArticle: Article = {
     index: -1,
     headline: "",
     category: "",
@@ -42,52 +27,74 @@ const emptyArticle: Article =
     content: []
 };
 
-
 export function getEmptyArticle(): Article {
     return emptyArticle;
 }
 
-export async function getArticleByID(id: number): Promise<Article> {
-    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[id].id}`;
+function getPlayedArticleIndices(): number[] {
+    try {
+        const played: number[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('stats-won-')) {
+                const index = parseInt(key.replace('stats-won-', ''));
+                if (!isNaN(index)) played.push(index);
+            }
+        }
+        return played;
+    } catch (e) {
+        return [];
+    }
+}
 
-    const response = await fetch(url);
-    const json = await response.json();
+export async function getArticleByID(id: number): Promise<Article> {
+    const articleInfo = articleList.find(a => a.index === id) || articleList[0];
+    const bbcData = prefetchedArticles[articleInfo.index];
+
+    if (!bbcData) {
+        console.warn(`Article ${id} not found in pre-fetched store, using fallback.`);
+        return {
+            ...emptyArticle,
+            headline: "Article Not Found",
+            content: ["This article has not been pre-fetched yet."],
+            index: articleInfo.index,
+            category: 'Error'
+        };
+    }
 
     return {
-        ...json,
-        index: articleIds[id].index,
-        category: articleIds[id].category,
-        avgGuesses: articleIds[id].avgGuesses
-    };
+        ...emptyArticle,
+        ...bbcData,
+        index: articleInfo.index,
+        category: articleInfo.category,
+        avgGuesses: bbcData.predictedGuesses || articleInfo.avgGuesses
+    } as Article;
 }
 
 export async function getRandomArticle(currentIndex: number): Promise<Article> {
-    const others = articleIds.filter(a => a.index !== currentIndex);
-    const randomArticle = others[Math.floor(Math.random() * others.length)];
-    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${randomArticle.id}`;
+    const played = getPlayedArticleIndices();
+    const available = articleList.filter(a => prefetchedArticles[a.index]);
+    const others = available.filter(a => a.index !== currentIndex && !played.includes(a.index));
 
-    const response = await fetch(url);
-    const json = await response.json();
+    const candidates = others.length > 0 ? others : available.filter(a => a.index !== currentIndex);
+    const randomArticle = candidates[Math.floor(Math.random() * candidates.length)];
 
-    return {
-        ...json,
-        index: randomArticle.index,
-        category: randomArticle.category,
-        avgGuesses: randomArticle.avgGuesses
-    };
+    return getArticleByID(randomArticle.index);
 }
 
 export async function getDailyArticle(): Promise<Article> {
-    const dailyIndex = 1;
-    const url = `https://f1950jcnl7.execute-api.eu-west-1.amazonaws.com/${articleIds[dailyIndex].id}`;
+    // Deterministic selection based on date
+    const now = new Date();
+    // Use UTC date to ensure everyone gets the same article regardless of timezone
+    const startOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const dayIndex = Math.floor(startOfToday / (1000 * 60 * 60 * 24));
 
-    const response = await fetch(url);
-    const json = await response.json();
+    // Use the dayIndex as a seed to pick an article from the list
+    const available = articleList.filter(a => prefetchedArticles[a.index]);
+    if (available.length === 0) return getArticleByID(0);
 
-    return {
-        ...json,
-        index: dailyIndex,
-        category: articleIds[dailyIndex].category,
-        avgGuesses: articleIds[dailyIndex].avgGuesses
-    };
+    const dailyIndex = dayIndex % available.length;
+    const articleId = available[dailyIndex].index;
+
+    return getArticleByID(articleId);
 }
